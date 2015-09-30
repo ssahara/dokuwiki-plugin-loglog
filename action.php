@@ -61,8 +61,15 @@ class action_plugin_loglog extends DokuWiki_Action_Plugin {
         if(!$user) $user = $INPUT->str('u'); // $_REQUEST['u']
         if(!$user) return;
 
-        $t   = time();
-        $log = $t . "\t" . strftime($conf['dformat'], $t) . "\t" . $_SERVER['REMOTE_ADDR'] . "\t" . $user . "\t" . $msg;
+        $t = time();
+        $data = array(
+            $t,
+            strftime($conf['dformat'], $t),
+            $_SERVER['REMOTE_ADDR'],
+            $user,
+            $msg
+        );
+        $log = implode("\t", $data);
         io_saveFile($conf['cachedir'] . '/loglog.log', "$log\n", true);
     }
 
@@ -107,7 +114,7 @@ class action_plugin_loglog extends DokuWiki_Action_Plugin {
         $act = act_clean($event->data);
         if($act == 'logout') {
             $this->_log('logged off');
-        } elseif(!empty($_SERVER['REMOTE_USER']) && $act == 'login') {
+        } elseif(($act == 'login') && !empty($_SERVER['REMOTE_USER'])) {
             if(isset($_REQUEST['r'])) {
                 $this->_log('logged in permanently');
             } else {
