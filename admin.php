@@ -48,7 +48,7 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
         if(!$go) $go = strtotime('monday this week');
         $min = $go;
         $max = strtotime('+1 week',$min);
-        $week_index = date('o',$min).' '.ordSuffix(date('W',$min));
+        $week_index = date('o',$min).' '.$this->ordSuffix(date('W',$min));
 
         echo $this->locale_xhtml('intro');
 
