@@ -40,15 +40,20 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
      */
     function html() {
         global $ID, $conf, $lang;
+        
+        // Weekly login/logout table, pagenation based on
+        // ISO-8601 week number of year, weeks starting on Monday
+        
         $go  = isset($_REQUEST['time']) ? intval($_REQUEST['time']) : 0;
         if(!$go) $go = strtotime('monday this week');
         $min = $go;
-        $max = strtotime('+1 week', $min);
+        $max = strtotime('+1 week',$min);
+        $week_index = date('o',$min).' '.ordSuffix(date('W',$min));
 
         echo $this->locale_xhtml('intro');
 
         echo '<p>'.$this->getLang('range').' '.strftime($conf['dformat'],$min).
-             ' - '.strftime($conf['dformat'],$max-1).'</p>';
+             ' - '.strftime($conf['dformat'],$max-1).' ('.$week_index.')</p>';
 
 
         echo '<table class="inline loglog">';
@@ -185,4 +190,21 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
 
         return $lines;
     }
+
+    /**
+     * convert 1,2,3,4 to 1st, 2nd, 3rd, 4th etc
+     */
+    function ordSuffix($n) {
+        $str = "$n";
+        $t = ($n > 9) ? substr($str,-2,1) : 0;
+        $u = substr($str,-1);
+        if ($t==1) return $str . 'th';
+        else switch ($u) {
+            case 1: return $str . 'st';
+            case 2: return $str . 'nd';
+            case 3: return $str . 'rd';
+            default: return $str . 'th';
+        }
+    }
+
 }
