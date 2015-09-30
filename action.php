@@ -58,7 +58,7 @@ class action_plugin_loglog extends DokuWiki_Action_Plugin {
         global $INPUT;
 
         if(is_null($user)) $user = $INPUT->server->str('REMOTE_USER');
-        if(!$user) $user = $_REQUEST['u'];
+        if(!$user) $user = $INPUT->str('u'); // $_REQUEST['u']
         if(!$user) return;
 
         $t   = time();

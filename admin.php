@@ -39,12 +39,12 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
      * output appropriate html
      */
     function html() {
-        global $ID, $conf, $lang;
+        global $INPUT, $ID, $conf, $lang;
         
         // Weekly login/logout table, pagenation based on
         // ISO-8601 week number of year, weeks starting on Monday
         
-        $go  = isset($_REQUEST['time']) ? intval($_REQUEST['time']) : 0;
+        $go = $INPUT->int('time',0); // Access Request Variables Safely
         if(!$go) $go = strtotime('monday this week');
         $min = $go;
         $max = strtotime('+1 week',$min);
