@@ -1,6 +1,6 @@
 <?php
 /**
- * Login/Logout logging plugin
+ * Login/Logout logging plugin; admin component
  *
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author     Andreas Gohr <gohr@cosmocode.de>
@@ -14,6 +14,8 @@ require_once(DOKU_PLUGIN.'admin.php');
 
 
 class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
+
+    protected $logFile = 'loglog.log'; // stored in cache directory
 
     /**
      * Access for managers allowed
@@ -135,7 +137,7 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
      */
     function _readlines($min,$max){
         global $conf;
-        $file = $conf['cachedir'].'/loglog.log';
+        $file = $conf['cachedir'].'/'.$this->logFile;
 
 
         $data  = array();

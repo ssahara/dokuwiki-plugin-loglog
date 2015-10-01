@@ -1,6 +1,6 @@
 <?php
 /**
- * Login/Logout logging plugin
+ * Login/Logout logging plugin; action component
  *
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
  * @author     Andreas Gohr <gohr@cosmocode.de>
@@ -15,6 +15,7 @@ require_once(DOKU_PLUGIN . 'action.php');
 class action_plugin_loglog extends DokuWiki_Action_Plugin {
 
     var $islogin = false;
+    protected $logFile = 'loglog.log'; // stored in cache directory
 
     /**
      * register the eventhandlers
@@ -62,15 +63,14 @@ class action_plugin_loglog extends DokuWiki_Action_Plugin {
         if(!$user) return;
 
         $t = time();
-        $data = array(
+        $log = implode("\t", array(
             $t,
             strftime($conf['dformat'], $t),
             $_SERVER['REMOTE_ADDR'],
             $user,
             $msg
-        );
-        $log = implode("\t", $data);
-        io_saveFile($conf['cachedir'] . '/loglog.log', "$log\n", true);
+        ))."\n";
+        io_saveFile($conf['cachedir'].'/'.$this->logFile, $log, true);
     }
 
     /**
