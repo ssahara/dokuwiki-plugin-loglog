@@ -112,16 +112,24 @@ class action_plugin_loglog extends DokuWiki_Action_Plugin {
      */
     public function handle_before(Doku_Event $event, $param) {
         $act = act_clean($event->data);
-        if($act == 'logout') {
-            $this->_log('logged off');
-        } elseif(($act == 'login') && !empty($_SERVER['REMOTE_USER'])) {
-            if(isset($_REQUEST['r'])) {
-                $this->_log('logged in permanently');
-            } else {
-                $this->_log('logged in temporarily');
-            }
-        } elseif($_REQUEST['u'] && $_REQUEST['http_credentials'] && empty($_SERVER['REMOTE_USER'])) {
-            $this->_log('failed login attempt');
+        switch ($act) {
+            case 'logout':
+                $this->_log('logged off');
+                break;
+            case 'login':
+                if (!empty($_SERVER['REMOTE_USER'])) {
+                    if (isset($_REQUEST['r'])) {
+                        $this->_log('logged in permanently');
+                    } else {
+                        $this->_log('logged in temporarily');
+                    }
+                } else {
+                    // exclude silent HTTP credential fails from logging
+                    if ($_REQUEST['u'] && $_REQUEST['http_credentials']) {
+                        $this->_log('failed login attempt');
+                    }
+                }
+                break;
         }
     }
 }
