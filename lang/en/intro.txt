@@ -1,3 +1,1 @@
-====== User Logins/Logouts History ======
-
 This screen displays weekly or monthly logins and logouts of all users. You can use the navigation buttons at the bottom of the screen to display earlier and previous period.

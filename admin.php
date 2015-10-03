@@ -78,7 +78,10 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
         $min = $this->table['min'];
         $max = $this->table['max'];
 
+        echo '<h1>'.$this->getLang('menu').'</h1>';
+        echo '<div class="loglog_noprint">';
         echo $this->locale_xhtml('intro');
+        echo '</div>';
 
         $caption = date($this->time[$term]['caption'], $min);
         echo '<p>'.$this->getLang('range').' '.
@@ -145,7 +148,7 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
 
         echo '</table>';
 
-        echo '<div class="pagenav">';
+        echo '<div class="pagenav loglog_noprint">';
         if($max < time()){
         echo '<div class="pagenav-prev">';
         $go = strtotime($this->time[$term]['next'], $min);
