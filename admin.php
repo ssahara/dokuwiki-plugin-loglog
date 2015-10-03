@@ -17,24 +17,52 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
 
     protected $logFile = 'loglog.log'; // stored in cache directory
 
+    protected $table = array();
+    protected $time;
+
+    function __construct() {
+        // http://php.net/manual/ja/datetime.formats.relative.php
+        $this->time = array(
+            'weekly' => array(
+                'caption' => '\W\e\e\k W \o\f Y \y\e\a\r',
+                'min'  => 'monday this week 00:00:00',
+                'max'  => 'sunday 23:59:59', //'+1 week',
+                'next' => '+1 week 00:00:00',
+                'prev' => '-1 week 00:00:00',
+            ),
+            'monthly' => array(
+                'caption' => 'F Y',
+                'min'  => 'first day of this month 00:00:00',
+                'max'  => 'last day of this month 23:59:59',
+                'next' => 'first day of +1 month 00:00:00',
+                'prev' => 'first day of -1 month 00:00:00',
+            ),
+        );
+    }
+
     /**
      * Access for managers allowed
      */
-    function forAdminOnly(){
-        return false;
-    }
+    function forAdminOnly(){ return false; }
 
     /**
      * return sort order for position in admin menu
      */
-    function getMenuSort() {
-        return 141;
-    }
+    function getMenuSort() { return 141; }
 
     /**
      * handle user request
      */
     function handle() {
+        global $INPUT;
+
+        // table pagenation
+        $this->table['term'] = $INPUT->str('term', 'weekly');
+        $term = $this->table['term'];
+
+        $go = $INPUT->int('time', time());
+        $this->table['min'] = strtotime($this->time[$term]['min'], $go);
+        $this->table['max'] = strtotime($this->time[$term]['max'], $go);
     }
 
     /**
@@ -46,16 +74,17 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
         // Weekly login/logout table, pagenation based on
         // ISO-8601 week number of year, weeks starting on Monday
 
-        $go = $INPUT->int('time',0); // Access Request Variables Safely
-        if(!$go) $go = strtotime('monday this week');
-        $min = $go;
-        $max = strtotime('+1 week',$min);
-        $week_index = $this->ordSuffix(date('W',$min)).' week of '.date('o',$min). ' year';
+        $term = $this->table['term'];
+        $min = $this->table['min'];
+        $max = $this->table['max'];
 
         echo $this->locale_xhtml('intro');
 
-        echo '<p>'.$this->getLang('range').' '.strftime($conf['dformat'],$min).
-             ' - '.strftime($conf['dformat'],$max-1).' ('.$week_index.')</p>';
+        $caption = date($this->time[$term]['caption'], $min);
+        echo '<p>'.$this->getLang('range').' '.$caption.' : '.
+             strftime('%F (%a)',$min).' - '.strftime('%F (%a)',$max).'</p>';
+        //echo '<p>'.$this->getLang('range').' '.strftime($conf['dformat'],$min).
+        //     ' - '.strftime($conf['dformat'],$max-1).' ['.$caption.']</p>';
 
 
         echo '<table class="inline loglog">';
@@ -119,12 +148,14 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
         echo '<div class="pagenav">';
         if($max < time()){
         echo '<div class="pagenav-prev">';
-        echo html_btn('newer',$ID,"p",array('do'=>'admin','page'=>'loglog','time'=>$max));
+        $go = strtotime($this->time[$term]['next'], $min);
+        echo html_btn('newer',$ID,"p",array('do'=>'admin','page'=>'loglog','time'=>$go,'term'=>$term));
         echo '</div>';
         }
 
         echo '<div class="pagenav-next">';
-        echo html_btn('older',$ID,"n",array('do'=>'admin','page'=>'loglog','time'=>strtotime('-1 week',$min)));
+        $go = strtotime($this->time[$term]['prev'], $min);
+        echo html_btn('older',$ID,"n",array('do'=>'admin','page'=>'loglog','time'=>$go,'term'=>$term));
         echo '</div>';
         echo '</div>';
 
