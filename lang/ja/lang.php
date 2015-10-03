@@ -4,7 +4,7 @@
  * 
  * @author Hideaki SAWADA <chuno@live.jp>
  */
-$lang['menu']                  = 'ユーザーログイン／ログアウト';
+$lang['menu']                  = 'ログイン／ログアウト履歴';
 $lang['date']                  = '日付';
 $lang['ip']                    = 'IPアドレス';
 $lang['action']                = '動作';
