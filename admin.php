@@ -81,13 +81,12 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
         echo $this->locale_xhtml('intro');
 
         $caption = date($this->time[$term]['caption'], $min);
-        echo '<p>'.$this->getLang('range').' '.$caption.' : '.
+        echo '<p>'.$this->getLang('range').' '.
              strftime('%F (%a)',$min).' - '.strftime('%F (%a)',$max).'</p>';
-        //echo '<p>'.$this->getLang('range').' '.strftime($conf['dformat'],$min).
-        //     ' - '.strftime($conf['dformat'],$max-1).' ['.$caption.']</p>';
 
 
         echo '<table class="inline loglog">';
+        echo '<caption>',$caption.'</caption>';
         echo '<tr>';
         echo '<th>'.$this->getLang('date').'</th>';
         echo '<th>'.$this->getLang('ip').'</th>';
@@ -136,7 +135,8 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
             }
 
             echo '<tr>';
-            echo '<td>'.strftime($conf['dformat'],$dt).'</td>';
+            //echo '<td>'.strftime($conf['dformat'],$dt).'</td>';
+            echo '<td>'.strftime('%F %T',$dt).'</td>';
             echo '<td>'.hsc($ip).'</td>';
             echo '<td>'.hsc($user).'</td>';
             echo '<td><span class="loglog_'.$class.'">'.$msg.'</span></td>';

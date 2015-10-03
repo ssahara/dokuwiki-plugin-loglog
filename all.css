@@ -1,7 +1,15 @@
+/**
+ * Login/Logout logging plugin
+ */
 table.loglog {
     width: 100%;
     table-layout: fixed;
     word-wrap: break-word;
+}
+
+table.loglog caption {
+    font-size: 120%;
+    font-weight: bold;
 }
 
 table.loglog span {
@@ -24,7 +32,3 @@ table.loglog span.loglog_temp {
 table.loglog span.loglog_fail {
     background: transparent url(pix/error.png) left center no-repeat;
 }
-
-
-
-
