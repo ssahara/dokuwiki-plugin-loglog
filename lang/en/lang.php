@@ -1,6 +1,6 @@
 <?php
 
-$lang['menu'] = 'Weekly User Logins/Logouts';
+$lang['menu'] = 'User Logins/Logouts History';
 
 $lang['date']   = 'Date';
 $lang['ip']     = 'IP Address';
