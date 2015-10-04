@@ -18,20 +18,27 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
     protected $logFile = 'loglog.log'; // stored in cache directory
 
     protected $table = array();
-    protected $time;
+    protected $term;
 
     function __construct() {
         // http://php.net/manual/ja/datetime.formats.relative.php
-        $this->time = array(
+        $this->term = array(
+            'dayly' => array(
+                'caption' => '%c',
+                'min'  => 'today 00:00:00',
+                'max'  => 'today 23:59:59',
+                'next' => '+1 day 00:00:00',
+                'prev' => '-1 day 00:00:00',
+            ),
             'weekly' => array(
-                'caption' => '\W\e\e\k W \o\f Y \y\e\a\r',
-                'min'  => 'monday this week 00:00:00',
-                'max'  => 'sunday 23:59:59', //'+1 week',
+                'caption' => 'Week %V of %Y year',
+                'min'  => '-1 week monday 00:00:00', // thsi week start
+                'max'  => 'sunday 23:59:59',         // this week end
                 'next' => '+1 week 00:00:00',
                 'prev' => '-1 week 00:00:00',
             ),
             'monthly' => array(
-                'caption' => 'F Y',
+                'caption' => '%B %Y',
                 'min'  => 'first day of this month 00:00:00',
                 'max'  => 'last day of this month 23:59:59',
                 'next' => 'first day of +1 month 00:00:00',
@@ -61,8 +68,8 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
         $term = $this->table['term'];
 
         $go = $INPUT->int('time', time());
-        $this->table['min'] = strtotime($this->time[$term]['min'], $go);
-        $this->table['max'] = strtotime($this->time[$term]['max'], $go);
+        $this->table['min'] = strtotime($this->term[$term]['min'], $go);
+        $this->table['max'] = strtotime($this->term[$term]['max'], $go);
     }
 
     /**
@@ -83,7 +90,7 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
         echo $this->locale_xhtml('intro');
         echo '</div>';
 
-        $caption = date($this->time[$term]['caption'], $min);
+        $caption = strftime($this->term[$term]['caption'], $min);
         echo '<p>'.$this->getLang('range').' '.
              strftime('%F (%a)',$min).' - '.strftime('%F (%a)',$max).'</p>';
 
@@ -151,13 +158,13 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
         echo '<div class="pagenav loglog_noprint">';
         if($max < time()){
         echo '<div class="pagenav-prev">';
-        $go = strtotime($this->time[$term]['next'], $min);
+        $go = strtotime($this->term[$term]['next'], $min);
         echo html_btn('newer',$ID,"p",array('do'=>'admin','page'=>'loglog','time'=>$go,'term'=>$term));
         echo '</div>';
         }
 
         echo '<div class="pagenav-next">';
-        $go = strtotime($this->time[$term]['prev'], $min);
+        $go = strtotime($this->term[$term]['prev'], $min);
         echo html_btn('older',$ID,"n",array('do'=>'admin','page'=>'loglog','time'=>$go,'term'=>$term));
         echo '</div>';
         echo '</div>';
