@@ -23,7 +23,7 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
     function __construct() {
         // http://php.net/manual/ja/datetime.formats.relative.php
         $this->term = array(
-            'dayly' => array(
+            'daily' => array(
                 'caption' => '%c',
                 'min'  => 'today 00:00:00',
                 'max'  => 'today 23:59:59',
