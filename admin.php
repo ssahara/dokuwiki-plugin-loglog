@@ -18,61 +18,32 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
     protected $logFile = 'loglog.log'; // stored in cache directory
 
     protected $table = array();
-    protected $term;
-
-    function __construct() {
-        // http://php.net/manual/ja/datetime.formats.relative.php
-        $this->term = array(
-            'daily' => array(
-                'caption' => '%c',
-                //'min'  => 'today 00:00:00',
-                //'max'  => 'today 23:59:59',
-                'next' => '+1 day 00:00:00',
-                'prev' => '-1 day 00:00:00',
-            ),
-            'weekly' => array(
-                'caption' => 'Week %V of %Y year',
-                //'min'  => '-1 week monday 00:00:00', // this week start
-                //'min'  => 'monday this week 00:00:00', // this week start, wrong on sunday?
-                //'min'  => '+0 week monday 00:00:00', // this week start, wrong on sunday?
-                //'max'  => 'sunday 23:59:59',         // this week end
-                'next' => '+1 week 00:00:00',
-                'prev' => '-1 week 00:00:00',
-            ),
-            'monthly' => array(
-                'caption' => '%B %Y',
-                //'min'  => 'first day of this month 00:00:00',
-                //'max'  => 'last day of this month 23:59:59',
-                'next' => 'first day of +1 month 00:00:00',
-                'prev' => 'first day of -1 month 00:00:00',
-            ),
-        );
-    }
+    protected $term_default = 'month';
 
     /**
      * get time range of the log table
      *
-     * @param string $term   date range of table, monthy, weekly, or daily
+     * @param string $term   unit fo date range of table (month, week, or day)
      * @param int    $time   timestamp of interest time
      * @return array min and max timestamp of the table
      */
-    function getRange($term = 'weekly', $time = 0) {
+    function getRange($term = 'week', $time = 0) {
         if (!$time) $time = time();
         switch ($term) {
-            case 'daily':
+            case 'day':
                 $min = strtotime('today 00:00:00', $time);
                 $max = strtotime('today 23:59:59', $time);
                 break;
-            case 'monthly':
+            case 'month':
                 $min = strtotime('first day of this month 00:00:00', $time);
                 $max = strtotime('last day of this month 23:59:59', $time);
                 break;
-            case 'weekly0': // week number, 0(for Sunday) through 6(for Saturday)
+            case 'week0': // week number, 0(for Sunday) through 6(for Saturday)
                 $w = date('w', $time); // 0:Sunday ... 6:Saturday
                 $min = strtotime("-{$w} day 00:00:00", $time);
                 $max = strtotime('saturday 23:59:59', $time);
                 break;
-            case 'weekly':  // ISO-8601:1999 week number, 1(for Monday) through 7(for Sunday)
+            case 'week':  // ISO-8601:1999 week number, 1(for Monday) through 7(for Sunday)
             default:
                 $w = date('N', $time)-1; // 0:monday ... 6:sunday
                 $min = strtotime("-{$w} day 00:00:00", $time);
@@ -81,6 +52,41 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
         return array($min, $max);
     }
 
+    /**
+     * get timestamp of adjacent date
+     *
+     * @param int $relative  +1 (forward) or -1 (backward)
+     * @param string $term   unit fo date range of table (month, week, or day)
+     * @param int    $time   timestamp of interest time
+     * @return int   timestamp
+     *
+     */
+    function adjacent_date($relative, $term, $time) {
+        $format = $relative.' '.rtrim($term,'0').' 00:00:00';
+        return strtotime($format , $time);
+    }
+
+    /**
+     * get appropriate table caption
+     *
+     * @param string $term   unit fo date range of table (month, week, or day)
+     * @param int    $time   timestamp of interest time
+     * @return sring         table caption
+     */
+    function table_caption($term, $time) {
+        switch ($term) {
+            case 'day':
+                $format = '%c'; break;
+            case 'month':
+                $format = '%B %Y'; break;
+            case 'week0':
+                $format = 'Week %U of %Y year (Sunday - Saturday)'; break;
+            case 'week':
+            default:
+                $format = 'Week %V of %Y year';
+        }
+        return strftime($format, $time);
+    }
 
     /**
      * Access for managers allowed
@@ -99,7 +105,7 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
         global $INPUT;
 
         // table pagenation
-        $this->table['term'] = $INPUT->str('term', 'weekly'); // default: weekly
+        $this->table['term'] = $INPUT->str('term', $this->term_default);
         $term = $this->table['term'];
 
         $go = $INPUT->int('time', time());
@@ -113,7 +119,7 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
      * output appropriate html
      */
     function html() {
-        global $INPUT, $ID, $conf, $lang;
+        global $ID, $conf, $lang;
 
         // login/logout table
         // pagenation based on monthly, weekly or daily 
@@ -132,8 +138,7 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
 
 
         echo '<table class="inline loglog">';
-        $caption = strftime($this->term[$term]['caption'], $min);
-        echo '<caption>',$caption.'</caption>';
+        echo '<caption>',$this->table_caption($term, $min).'</caption>';
         echo '<tr>';
         echo '<th>'.$this->getLang('date').'</th>';
         echo '<th>'.$this->getLang('ip').'</th>';
@@ -182,7 +187,6 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
             }
 
             echo '<tr>';
-            //echo '<td>'.strftime($conf['dformat'],$dt).'</td>';
             echo '<td>'.strftime('%F %T',$dt).'</td>';
             echo '<td>'.hsc($ip).'</td>';
             echo '<td>'.hsc($user).'</td>';
@@ -195,13 +199,13 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
         echo '<div class="pagenav loglog_noprint">';
         if($max < time()){
         echo '<div class="pagenav-prev">';
-        $go = strtotime($this->term[$term]['next'], $min);
+        $go = $this->adjacent_date(+1, $term, $min);
         echo html_btn('newer',$ID,"p",array('do'=>'admin','page'=>'loglog','time'=>$go,'term'=>$term));
         echo '</div>';
         }
 
         echo '<div class="pagenav-next">';
-        $go = strtotime($this->term[$term]['prev'], $min);
+        $go = $this->adjacent_date(-1, $term, $min);
         echo html_btn('older',$ID,"n",array('do'=>'admin','page'=>'loglog','time'=>$go,'term'=>$term));
         echo '</div>';
         echo '</div>';
