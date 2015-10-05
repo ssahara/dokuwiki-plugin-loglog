@@ -25,27 +25,62 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
         $this->term = array(
             'daily' => array(
                 'caption' => '%c',
-                'min'  => 'today 00:00:00',
-                'max'  => 'today 23:59:59',
+                //'min'  => 'today 00:00:00',
+                //'max'  => 'today 23:59:59',
                 'next' => '+1 day 00:00:00',
                 'prev' => '-1 day 00:00:00',
             ),
             'weekly' => array(
                 'caption' => 'Week %V of %Y year',
-                'min'  => '-1 week monday 00:00:00', // thsi week start
-                'max'  => 'sunday 23:59:59',         // this week end
+                //'min'  => '-1 week monday 00:00:00', // this week start
+                //'min'  => 'monday this week 00:00:00', // this week start, wrong on sunday?
+                //'min'  => '+0 week monday 00:00:00', // this week start, wrong on sunday?
+                //'max'  => 'sunday 23:59:59',         // this week end
                 'next' => '+1 week 00:00:00',
                 'prev' => '-1 week 00:00:00',
             ),
             'monthly' => array(
                 'caption' => '%B %Y',
-                'min'  => 'first day of this month 00:00:00',
-                'max'  => 'last day of this month 23:59:59',
+                //'min'  => 'first day of this month 00:00:00',
+                //'max'  => 'last day of this month 23:59:59',
                 'next' => 'first day of +1 month 00:00:00',
                 'prev' => 'first day of -1 month 00:00:00',
             ),
         );
     }
+
+    /**
+     * get time range of the log table
+     *
+     * @param string $term   date range of table, monthy, weekly, or daily
+     * @param int    $time   timestamp of interest time
+     * @return array min and max timestamp of the table
+     */
+    function getRange($term = 'weekly', $time = 0) {
+        if (!$time) $time = time();
+        switch ($term) {
+            case 'daily':
+                $min = strtotime('today 00:00:00', $time);
+                $max = strtotime('today 23:59:59', $time);
+                break;
+            case 'monthly':
+                $min = strtotime('first day of this month 00:00:00', $time);
+                $max = strtotime('last day of this month 23:59:59', $time);
+                break;
+            case 'weekly0': // week number, 0(for Sunday) through 6(for Saturday)
+                $w = date('w', $time); // 0:Sunday ... 6:Saturday
+                $min = strtotime("-{$w} day 00:00:00", $time);
+                $max = strtotime('saturday 23:59:59', $time);
+                break;
+            case 'weekly':  // ISO-8601:1999 week number, 1(for Monday) through 7(for Sunday)
+            default:
+                $w = date('N', $time)-1; // 0:monday ... 6:sunday
+                $min = strtotime("-{$w} day 00:00:00", $time);
+                $max = strtotime('sunday 23:59:59', $time);
+        }
+        return array($min, $max);
+    }
+
 
     /**
      * Access for managers allowed
@@ -64,12 +99,14 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
         global $INPUT;
 
         // table pagenation
-        $this->table['term'] = $INPUT->str('term', 'weekly');
+        $this->table['term'] = $INPUT->str('term', 'weekly'); // default: weekly
         $term = $this->table['term'];
 
         $go = $INPUT->int('time', time());
-        $this->table['min'] = strtotime($this->term[$term]['min'], $go);
-        $this->table['max'] = strtotime($this->term[$term]['max'], $go);
+        //$go = strtotime('2015-10-04 12:00:00');
+        list ($min, $max) = $this->getRange($term, $go);
+        $this->table['min'] = $min;
+        $this->table['max'] = $max;
     }
 
     /**
@@ -78,8 +115,8 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
     function html() {
         global $INPUT, $ID, $conf, $lang;
 
-        // Weekly login/logout table, pagenation based on
-        // ISO-8601 week number of year, weeks starting on Monday
+        // login/logout table
+        // pagenation based on monthly, weekly or daily 
 
         $term = $this->table['term'];
         $min = $this->table['min'];
@@ -88,14 +125,14 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
         echo '<h1>'.$this->getLang('menu').'</h1>';
         echo '<div class="loglog_noprint">';
         echo $this->locale_xhtml('intro');
-        echo '</div>';
 
-        $caption = strftime($this->term[$term]['caption'], $min);
         echo '<p>'.$this->getLang('range').' '.
              strftime('%F (%a)',$min).' - '.strftime('%F (%a)',$max).'</p>';
+        echo '</div>';
 
 
         echo '<table class="inline loglog">';
+        $caption = strftime($this->term[$term]['caption'], $min);
         echo '<caption>',$caption.'</caption>';
         echo '<tr>';
         echo '<th>'.$this->getLang('date').'</th>';
@@ -175,6 +212,8 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
      * Read loglines backward
      *
      * @param int $min - start time (in seconds)
+     * @param int $max - end time (in seconds)
+     * @return array     lines of log data
      */
     function _readlines($min,$max){
         global $conf;
