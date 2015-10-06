@@ -9,83 +9,74 @@
 // must be run within Dokuwiki
 if(!defined('DOKU_INC')) die();
 
-if(!defined('DOKU_PLUGIN')) define('DOKU_PLUGIN',DOKU_INC.'lib/plugins/');
-require_once(DOKU_PLUGIN.'admin.php');
-
-
 class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
 
     protected $logFile = 'loglog.log'; // stored in cache directory
 
     protected $table = array();
-    protected $term_default = 'month';
+    protected $term_default = 'monthly';
+
 
     /**
-     * get time range of the log table
+     * Resolve 'time' url parameter
      *
-     * @param string $term   unit fo date range of table (month, week, or day)
-     * @param int    $time   timestamp of interest time
-     * @return array min and max timestamp of the table
+     * @param string $request   requested start date of log table
+     * @param array  $data      reference, log table parameters
+     * @return string           verified start date notations
      */
-    function getRange($term = 'week', $time = 0) {
-        if (!$time) $time = time();
+    function resolve_time($request, &$data) {
+
+        // simple check url paramater 'time'
+        if (strpos($request, 'W') !== false) {
+            // ISO year with ISO week;              eg. 2015W04
+            $term = 'weekly';
+        } else if (strlen($request) == 8) {
+            // Eight digit year, month and day;     eg. 20150207
+            $term = 'daily';
+        } else if (strlen($request) == 6) {
+            // Four digit year and two digit month; eg. 201504
+            $term = 'monthly'; $request .= '01';
+        } else {
+            $term = $this->term_default;
+        }
+
+        // rebuild 'time' parameter and set it to $go
+        $time = strtotime($request) ?: time();
         switch ($term) {
-            case 'day':
+            case 'daily':
+                $go  = strftime('%Y%m%d', $time);
                 $min = strtotime('today 00:00:00', $time);
                 $max = strtotime('today 23:59:59', $time);
+                $forward  = strftime('%Y%m%d', strtotime('+1 day', $min));
+                $backward = strftime('%Y%m%d', strtotime('-1 day', $min));
+                $caption  = strftime('%c', $time);
                 break;
-            case 'month':
+            case 'monthly':
+                $go  = strftime('%Y%m', $time);
                 $min = strtotime('first day of this month 00:00:00', $time);
                 $max = strtotime('last day of this month 23:59:59', $time);
+                $forward  = strftime('%Y%m', strtotime('+1 month', $min));
+                $backward = strftime('%Y%m', strtotime('-1 month', $min));
+                $caption  = strftime('%B %Y', $time);
                 break;
-            case 'week0': // week number, 0(for Sunday) through 6(for Saturday)
-                $w = date('w', $time); // 0:Sunday ... 6:Saturday
-                $min = strtotime("-{$w} day 00:00:00", $time);
-                $max = strtotime('saturday 23:59:59', $time);
-                break;
-            case 'week':  // ISO-8601:1999 week number, 1(for Monday) through 7(for Sunday)
-            default:
-                $w = date('N', $time)-1; // 0:monday ... 6:sunday
-                $min = strtotime("-{$w} day 00:00:00", $time);
+            case 'weekly':
+                $go  = strftime('%YW%V', $time);
+                $n = date('N', $time)-1; // 0:monday ... 6:sunday
+                $min = strtotime("-{$n} day 00:00:00", $time);
                 $max = strtotime('sunday 23:59:59', $time);
+                $forward  = strftime('%YW%V', strtotime('+1 week', $min));
+                $backward = strftime('%YW%V', strtotime('-1 week', $min));
+                $caption  = strftime('Week %V of %Y year', $time);
+                break;
         }
-        return array($min, $max);
-    }
-
-    /**
-     * get timestamp of adjacent date
-     *
-     * @param int $relative  +1 (forward) or -1 (backward)
-     * @param string $term   unit fo date range of table (month, week, or day)
-     * @param int    $time   timestamp of interest time
-     * @return int   timestamp
-     *
-     */
-    function adjacent_date($relative, $term, $time) {
-        $format = $relative.' '.rtrim($term,'0').' 00:00:00';
-        return strtotime($format , $time);
-    }
-
-    /**
-     * get appropriate table caption
-     *
-     * @param string $term   unit fo date range of table (month, week, or day)
-     * @param int    $time   timestamp of interest time
-     * @return sring         table caption
-     */
-    function table_caption($term, $time) {
-        switch ($term) {
-            case 'day':
-                $format = '%c'; break;
-            case 'month':
-                $format = '%B %Y'; break;
-            case 'week0':
-                $format = 'Week %U of %Y year (Sunday - Saturday)'; break;
-            case 'week':
-            default:
-                $format = 'Week %V of %Y year';
-        }
-        return strftime($format, $time);
+        $data = array(
+            'caption'  => $caption,  // table caption
+            'min'      => $min,
+            'max'      => $max,
+            'forward'  => $forward,  // time request of newer button
+            'backward' => $backward, // time request of older button
+        );
+        return $go;
     }
 
     /**
@@ -104,15 +95,8 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
     function handle() {
         global $INPUT;
 
-        // table pagenation
-        $this->table['term'] = $INPUT->str('term', $this->term_default);
-        $term = $this->table['term'];
-
-        $go = $INPUT->int('time', time());
-        //$go = strtotime('2015-10-04 12:00:00');
-        list ($min, $max) = $this->getRange($term, $go);
-        $this->table['min'] = $min;
-        $this->table['max'] = $max;
+        $go = $this->resolve_time($INPUT->str('time'), $this->table);
+        // error_log(var_export($this->table, true));
     }
 
     /**
@@ -124,7 +108,6 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
         // login/logout table
         // pagenation based on monthly, weekly or daily 
 
-        $term = $this->table['term'];
         $min = $this->table['min'];
         $max = $this->table['max'];
 
@@ -138,7 +121,7 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
 
 
         echo '<table class="inline loglog">';
-        echo '<caption>',$this->table_caption($term, $min).'</caption>';
+        echo '<caption>',$this->table['caption'].'</caption>';
         echo '<tr>';
         echo '<th>'.$this->getLang('date').'</th>';
         echo '<th>'.$this->getLang('ip').'</th>';
@@ -199,14 +182,12 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
         echo '<div class="pagenav loglog_noprint">';
         if($max < time()){
         echo '<div class="pagenav-prev">';
-        $go = $this->adjacent_date(+1, $term, $min);
-        echo html_btn('newer',$ID,"p",array('do'=>'admin','page'=>'loglog','time'=>$go,'term'=>$term));
+        echo html_btn('newer',$ID,"p",array('do'=>'admin','page'=>'loglog','time'=>$this->table['forward']));
         echo '</div>';
         }
 
         echo '<div class="pagenav-next">';
-        $go = $this->adjacent_date(-1, $term, $min);
-        echo html_btn('older',$ID,"n",array('do'=>'admin','page'=>'loglog','time'=>$go,'term'=>$term));
+        echo html_btn('older',$ID,"n",array('do'=>'admin','page'=>'loglog','time'=>$this->table['backward']));
         echo '</div>';
         echo '</div>';
 
@@ -292,5 +273,74 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
             default: return $str . 'th';
         }
     }
+
+    /**
+     * get time range of the log table
+     *
+     * @param string $term   unit fo date range of table (month, week, or day)
+     * @param int    $time   timestamp of interest time
+     * @return array min and max timestamp of the table
+     */
+    function getRange($term = 'week', $time = 0) {
+        if (!$time) $time = time();
+        switch ($term) {
+            case 'day':
+                $min = strtotime('today 00:00:00', $time);
+                $max = strtotime('today 23:59:59', $time);
+                break;
+            case 'month':
+                $min = strtotime('first day of this month 00:00:00', $time);
+                $max = strtotime('last day of this month 23:59:59', $time);
+                break;
+            case 'week0': // week number, 0(for Sunday) through 6(for Saturday)
+                $w = date('w', $time); // 0:Sunday ... 6:Saturday
+                $min = strtotime("-{$w} day 00:00:00", $time);
+                $max = strtotime('saturday 23:59:59', $time);
+                break;
+            case 'week':  // ISO-8601:1999 week number, 1(for Monday) through 7(for Sunday)
+            default:
+                $w = date('N', $time)-1; // 0:monday ... 6:sunday
+                $min = strtotime("-{$w} day 00:00:00", $time);
+                $max = strtotime('sunday 23:59:59', $time);
+        }
+        return array($min, $max);
+    }
+
+    /**
+     * get timestamp of adjacent date
+     *
+     * @param int $relative  +1 (forward) or -1 (backward)
+     * @param string $term   unit fo date range of table (month, week, or day)
+     * @param int    $time   timestamp of interest time
+     * @return int   timestamp
+     *
+     */
+    function adjacent_date($relative, $term, $time) {
+        $format = $relative.' '.rtrim($term,'0').' 00:00:00';
+        return strtotime($format , $time);
+    }
+
+    /**
+     * get appropriate table caption
+     *
+     * @param string $term   unit fo date range of table (month, week, or day)
+     * @param int    $time   timestamp of interest time
+     * @return sring         table caption
+     */
+    function table_caption($term, $time) {
+        switch ($term) {
+            case 'day':
+                $format = '%c'; break;
+            case 'month':
+                $format = '%B %Y'; break;
+            case 'week0':
+                $format = 'Week %U of %Y year (Sunday - Saturday)'; break;
+            case 'week':
+            default:
+                $format = 'Week %V of %Y year';
+        }
+        return strftime($format, $time);
+    }
+
 
 }
