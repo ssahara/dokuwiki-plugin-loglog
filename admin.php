@@ -93,7 +93,7 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
     function html() {
         global $ID, $conf, $lang;
 
-        // render login/logout table based in time request
+        // render user login/logout log table based on time request
         // with monthly, weekly or daily pagenation
 
         echo '<h1>'.$this->getLang('menu').'</h1>';
@@ -108,6 +108,7 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
 
         echo '<table class="inline loglog">';
         echo '<caption>',$this->props['caption'].'</caption>';
+        echo '<tbody>';
         echo '<tr>';
         echo '<th>'.$this->getLang('date').'</th>';
         echo '<th>'.$this->getLang('ip').'</th>';
@@ -163,6 +164,7 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
             echo '</tr>';
         }
 
+        echo '</tbody>';
         echo '</table>';
 
         echo '<div class="pagenav loglog_noprint">';
