@@ -56,34 +56,34 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
                 $request = strftime('%Y%m%d', $time);
                 $min = strtotime('today 00:00:00', $time);
                 $max = strtotime('today 23:59:59', $time);
-                $forward  = strftime('%Y%m%d', strtotime('+1 day', $min));
-                $backward = strftime('%Y%m%d', strtotime('-1 day', $min));
-                $caption  = strftime('%c', $time);
+                $newer = strftime('%Y%m%d', strtotime('+1 day', $min));
+                $older = strftime('%Y%m%d', strtotime('-1 day', $min));
+                $caption = strftime('%c', $time);
                 break;
             case 'monthly':
                 $request = strftime('%Y%m', $time);
                 $min = strtotime('first day of this month 00:00:00', $time);
                 $max = strtotime('last day of this month 23:59:59', $time);
-                $forward  = strftime('%Y%m', strtotime('+1 month', $min));
-                $backward = strftime('%Y%m', strtotime('-1 month', $min));
-                $caption  = strftime('%B %Y', $time);
+                $newer = strftime('%Y%m', strtotime('+1 month', $min));
+                $older = strftime('%Y%m', strtotime('-1 month', $min));
+                $caption = strftime('%B %Y', $time);
                 break;
             case 'weekly':
                 $request = strftime('%YW%V', $time);
                 $n = date('N', $time)-1; // 0:monday ... 6:sunday
                 $min = strtotime("-{$n} day 00:00:00", $time);
                 $max = strtotime('sunday 23:59:59', $time);
-                $forward  = strftime('%YW%V', strtotime('+1 week', $min));
-                $backward = strftime('%YW%V', strtotime('-1 week', $min));
-                $caption  = strftime('Week %V of %Y year', $time);
+                $newer = strftime('%YW%V', strtotime('+1 week', $min));
+                $older = strftime('%YW%V', strtotime('-1 week', $min));
+                $caption = strftime('Week %V of %Y year', $time);
                 break;
         }
         $this->props = array(
-            'caption'  => $caption,  // table caption
-            'min'      => $min,
-            'max'      => $max,
-            'forward'  => $forward,  // time request of newer button
-            'backward' => $backward, // time request of older button
+            'caption' => $caption,  // table caption
+            'min'     => $min,
+            'max'     => $max,
+            'newer'   => $newer, // time request of newer button
+            'older'   => $older, // time request of older button
         );
     }
 
@@ -170,12 +170,12 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
         echo '<div class="pagenav loglog_noprint">';
         if ($this->props['max'] < time()){
         echo '<div class="pagenav-prev">';
-        echo html_btn('newer',$ID,"p",array('do'=>'admin','page'=>'loglog','time'=>$this->props['forward']));
+        echo html_btn('newer',$ID,"p",array('do'=>'admin','page'=>'loglog','time'=>$this->props['newer']));
         echo '</div>';
         }
 
         echo '<div class="pagenav-next">';
-        echo html_btn('older',$ID,"n",array('do'=>'admin','page'=>'loglog','time'=>$this->props['backward']));
+        echo html_btn('older',$ID,"n",array('do'=>'admin','page'=>'loglog','time'=>$this->props['older']));
         echo '</div>';
         echo '</div>';
 
