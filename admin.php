@@ -105,16 +105,17 @@ class admin_plugin_loglog extends DokuWiki_Admin_Plugin {
              strftime('%F (%a)',$this->props['max']).'</p>';
         echo '</div>';
 
-
         echo '<table class="inline loglog">';
         echo '<caption>',$this->props['caption'].'</caption>';
-        echo '<tbody>';
+        echo '<thead>';
         echo '<tr>';
         echo '<th>'.$this->getLang('date').'</th>';
         echo '<th>'.$this->getLang('ip').'</th>';
         echo '<th>'.$lang['user'].'</th>';
         echo '<th>'.$this->getLang('action').'</th>';
         echo '</tr>';
+        echo '</thead>';
+        echo '<tbody>';
 
         $lines = $this->_readlines($this->props['min'],$this->props['max']);
         $lines = array_reverse($lines);
